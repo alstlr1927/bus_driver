@@ -27,14 +27,49 @@ class CustomerRepository {
   }
 
   /// [getCustomerList] 전체 고객 리스트를 불러온다
-  Future<List<Map<String, dynamic>>> getCustomerList() async {
+  Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getCustomerList({
+    int pageLimit = 20,
+    DocumentSnapshot? lastDoc,
+  }) async {
     debugPrint('==================================================');
     debugPrint('getCustomerList\n');
+    debugPrint('pageLimit : $pageLimit\t');
+    debugPrint('lastDoc : ${lastDoc?.id}');
+    debugPrint('==================================================');
+    try {
+      late QuerySnapshot<Map<String, dynamic>> res;
+      if (lastDoc == null) {
+        res = await customerRef
+            .where('enable', isEqualTo: true)
+            .orderBy('createdAt', descending: true)
+            .limit(20)
+            .get();
+      } else {
+        res = await customerRef
+            .where('enable', isEqualTo: true)
+            .orderBy('createdAt', descending: true)
+            .startAfterDocument(lastDoc)
+            .limit(20)
+            .get();
+      }
+
+      return res.docs;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchCustomer({
+    required List<String> nickArr,
+  }) async {
+    debugPrint('==================================================');
+    debugPrint('searchCustomer\n');
+    debugPrint('nickname : $nickArr');
     debugPrint('==================================================');
     try {
       var res = await customerRef
           .where('enable', isEqualTo: true)
-          .orderBy('createdAt', descending: true)
+          .where('nicknameArr', arrayContainsAny: nickArr)
           .get();
 
       return res.docs.map((e) {

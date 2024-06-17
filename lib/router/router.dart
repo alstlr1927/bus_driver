@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:bus_counter/common/view/root_screen.dart';
 import 'package:bus_counter/customer/model/customer_model.dart';
 import 'package:bus_counter/customer/view/add_customer_screend.dart';
 import 'package:bus_counter/customer/view/customer_detail_screen.dart';
 import 'package:bus_counter/customer/view/customer_list_screen.dart';
 import 'package:bus_counter/customer/view/customer_modify_screen.dart';
+import 'package:bus_counter/customer/view/search_customer_result_screen.dart';
 import 'package:bus_counter/game/model/game_model.dart';
 import 'package:bus_counter/game/view/add_game_screen.dart';
 import 'package:bus_counter/game/view/game_list_screen.dart';
@@ -18,6 +21,7 @@ import 'package:bus_counter/run/view/add_run_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../common/utils/logger.dart';
 import '../common/view/splash_screen.dart';
 import '../login/view/email_login_screen.dart';
 import '../login/view/email_regist_screen.dart';
@@ -121,6 +125,20 @@ final router = GoRouter(
                 return CustomerDetailScreen(customer: customer);
               },
             ),
+            GoRoute(
+              path: 'search_customer',
+              name: SearchCustomerResultScreen.routeName,
+              builder: (_, state) {
+                Map<String, dynamic> data = state.extra as Map<String, dynamic>;
+                final String nickname = data['nickname'];
+                final Function(CustomerModel)? onItemPressed =
+                    data['onItemPressed'];
+                return SearchCustomerResultScreen(
+                  nickname: nickname,
+                  onItemPressed: onItemPressed,
+                );
+              },
+            ),
           ],
         ),
         GoRoute(
@@ -193,4 +211,115 @@ final router = GoRouter(
       },
     ),
   ],
+  observers: [
+    GoRouterObserver(),
+  ],
 );
+
+class GoRouterObserver extends NavigatorObserver {
+  final List<Route<dynamic>?> _history = <Route<dynamic>?>[];
+
+  String getHistoryToString() {
+    return _history
+        .map((element) => element!.settings.name)
+        .toList()
+        .toString();
+  }
+
+  List<Route<dynamic>> classHistories = [];
+
+  List<String?> getHistories() {
+    return _history.map((element) => element!.settings.name).toList();
+  }
+
+  Route? get top => _history.last;
+
+  final List<Route<dynamic>?> _poppedRoutes = <Route<dynamic>?>[];
+
+  final StreamController _historyChangeStreamController =
+      StreamController.broadcast();
+
+  Stream get historyChangeStream => _historyChangeStreamController.stream;
+
+  static final GoRouterObserver _singleton = GoRouterObserver._internal();
+
+  GoRouterObserver._internal();
+
+  factory GoRouterObserver() {
+    return _singleton;
+  }
+
+  @override
+  void didPush(Route route, Route? previousRoute) {
+    _history.add(route);
+    _poppedRoutes.remove(route);
+    try {
+      classHistories.add(route);
+    } catch (e) {}
+    _historyChangeStreamController.add(HistoryChange(
+      action: NavigationStackAction.push,
+      newRoute: route,
+      oldRoute: previousRoute,
+    ));
+    GonLog().i('History Observer : didPush \n ${getHistoryToString()}');
+  }
+
+  @override
+  void didPop(Route route, Route? previousRoute) {
+    _poppedRoutes.add(_history.last);
+
+    try {
+      classHistories.removeLast();
+    } catch (e) {}
+    _history.removeLast();
+    _historyChangeStreamController.add(HistoryChange(
+      action: NavigationStackAction.pop,
+      newRoute: route,
+      oldRoute: previousRoute,
+    ));
+
+    GonLog().i('History Observer : didPop \n ${getHistoryToString()}');
+  }
+
+  @override
+  void didRemove(Route route, Route? previousRoute) {
+    _history.remove(route);
+    try {
+      classHistories.remove(route);
+    } catch (e) {}
+    _historyChangeStreamController.add(HistoryChange(
+      action: NavigationStackAction.remove,
+      newRoute: route,
+      oldRoute: previousRoute,
+    ));
+    GonLog().i('History Observer : didRemove \n ${getHistoryToString()}');
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route? oldRoute}) {
+    try {
+      if (newRoute is MaterialPageRoute) {
+        classHistories.removeLast();
+        classHistories.add(newRoute);
+      }
+    } catch (e) {}
+    int oldRouteIndex = _history.indexOf(oldRoute);
+    _history.replaceRange(oldRouteIndex, oldRouteIndex + 1, [newRoute]);
+    _historyChangeStreamController.add(HistoryChange(
+      action: NavigationStackAction.replace,
+      newRoute: newRoute,
+      oldRoute: oldRoute,
+    ));
+    GonLog().i('History Observer : didReplace \n ${getHistoryToString()}');
+  }
+}
+
+class HistoryChange {
+  HistoryChange({this.action, this.newRoute, this.oldRoute});
+
+  final NavigationStackAction? action;
+  final Route<dynamic>? newRoute;
+  final Route<dynamic>? oldRoute;
+}
+
+enum NavigationStackAction { push, pop, remove, replace }

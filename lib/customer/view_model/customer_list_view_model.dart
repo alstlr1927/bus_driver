@@ -1,35 +1,67 @@
-import 'package:bus_counter/common/components/title_text_field/field_controller.dart';
 import 'package:bus_counter/common/utils/logger.dart';
 import 'package:bus_counter/customer/repository/customer_repository.dart';
 import 'package:bus_counter/customer/view/add_customer_screend.dart';
 import 'package:bus_counter/customer/view/customer_modify_screen.dart';
+import 'package:bus_counter/customer/view/search_customer_result_screen.dart';
+import 'package:bus_counter/router/router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../model/customer_model.dart';
+import '../view/customer_list_screen.dart';
 
 class CustomerListViewModel extends ChangeNotifier {
-  State state;
+  State<CustomerListScreen> state;
 
-  FieldController searchController = FieldController();
-
-  List<CustomerModel> viewList = [];
+  TextEditingController searchController = TextEditingController();
+  FocusNode searchNode = FocusNode();
+  String keyword = '';
 
   List<CustomerModel> allCustomerList = [];
 
-  void onChanged(String val) {
-    if (val.trim().isEmpty) {
-      viewList = [...allCustomerList];
-      notifyListeners();
+  bool isSearchMode = false;
+
+  int pageLimit = 20;
+  bool noMoreData = false;
+
+  DocumentSnapshot? lastDoc;
+
+  void _initSetting() {
+    noMoreData = false;
+    lastDoc = null;
+  }
+
+  Future<void> onClickSearchButton() async {
+    if (keyword.isEmpty) return;
+    Map<String, dynamic> data = {};
+    if (GoRouterObserver().getHistories().contains('add_user')) {
+      data = {
+        'nickname': keyword,
+        'onItemPressed': (CustomerModel customer) {
+          state.widget.onItemPressed?.call(customer);
+          state.context.pop();
+        },
+      };
     } else {
-      List<CustomerModel> temp = allCustomerList
-          .where((e) =>
-              e.nickname.toLowerCase().contains(val.trim().toLowerCase()))
-          .toList();
-      viewList = [...temp];
-      notifyListeners();
+      data = {
+        'nickname': keyword,
+        'onItemPressed': (CustomerModel customer) {
+          state.widget.onItemPressed?.call(customer);
+        },
+      };
     }
+
+    await state.context.pushNamed(
+      SearchCustomerResultScreen.routeName,
+      extra: data,
+    );
+  }
+
+  void onChanged(String val) {
+    keyword = val.trim();
+    notifyListeners();
   }
 
   Future<void> onClickDelteButton({
@@ -47,7 +79,6 @@ class CustomerListViewModel extends ChangeNotifier {
       int idx = allCustomerList.indexWhere((e) => e.uid == customer.uid);
       if (idx != -1) {
         allCustomerList.removeAt(idx);
-        viewList = [...allCustomerList];
         notifyListeners();
       }
     } catch (e, trace) {
@@ -66,7 +97,6 @@ class CustomerListViewModel extends ChangeNotifier {
       int idx = allCustomerList.indexWhere((e) => e.uid == result.uid);
       if (idx != -1) {
         allCustomerList[idx] = result;
-        viewList = [...allCustomerList];
         notifyListeners();
       }
     }
@@ -74,20 +104,42 @@ class CustomerListViewModel extends ChangeNotifier {
 
   Future<void> onClickAddButton() async {
     await state.context.pushNamed(AddCustomerScreen.routeName);
-    getAllCustomerList();
+    getCustomerList(isFirst: true);
   }
 
-  Future<void> getAllCustomerList() async {
+  Future<void> getCustomerList({
+    bool isFirst = false,
+  }) async {
+    if (isFirst) {
+      _initSetting();
+    }
+    if (noMoreData) return;
     try {
-      final res = await CustomerRepository().getCustomerList();
+      final res = await CustomerRepository().getCustomerList(
+        pageLimit: pageLimit,
+        lastDoc: lastDoc,
+      );
+      if (res.length < pageLimit) {
+        GonLog().i('no more data');
+        noMoreData = true;
+      }
 
-      List<CustomerModel> temp = res.map((e) {
-        GonLog().i('res : $e');
+      if (res.isNotEmpty) {
+        lastDoc = res.last;
+      }
+
+      List<Map<String, dynamic>> parseDatas = res.map((e) {
+        Map<String, dynamic> data = {};
+        data = e.data();
+        data['uid'] = e.id;
+        return data;
+      }).toList();
+
+      List<CustomerModel> temp = parseDatas.map((e) {
         return CustomerModel.fromJson(e);
       }).toList();
 
-      allCustomerList = [...temp];
-      viewList = [...temp];
+      allCustomerList = [...allCustomerList, ...temp];
       notifyListeners();
     } catch (e, trace) {
       GonLog().e('getAllCustomerList error : $e');
@@ -105,13 +157,11 @@ class CustomerListViewModel extends ChangeNotifier {
   @override
   void dispose() {
     searchController.dispose();
+    searchNode.dispose();
     super.dispose();
   }
 
   CustomerListViewModel(this.state) {
-    getAllCustomerList().then((value) {
-      viewList = [...allCustomerList];
-      notifyListeners();
-    });
+    getCustomerList(isFirst: true);
   }
 }

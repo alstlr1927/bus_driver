@@ -79,6 +79,35 @@ class RootViewModel extends ChangeNotifier {
   RootViewModel(this.state) {
     // _initRunCount();
     // _setRunCount();
+    // _searchTest();
+  }
+
+  _searchTest() async {
+    var allCustomerDatas =
+        await FirestoreHelper().firestore.collection('customer').get();
+
+    int cnt = 0;
+    for (var customer in allCustomerDatas.docs) {
+      cnt++;
+      //
+      // List<String> nicknameArr = [];
+      String nickname = (customer.data()['nickname'] as String).toLowerCase();
+
+      // for (int i = 0; i < nickname.length; i++) {
+      //   String c = nickname[i];
+      //   nicknameArr.add(c);
+      // }
+      GonLog().i('nicknameArr : ${nickname.split('')}');
+      // await FirestoreHelper()
+      //     .firestore
+      //     .collection('customer')
+      //     .doc(customer.id)
+      //     .update({
+      //   'nicknameArr': nicknameArr,
+      // });
+
+      GonLog().e('init run percent => $cnt / ${allCustomerDatas.docs.length}');
+    }
   }
 
   _initRunCount() async {
