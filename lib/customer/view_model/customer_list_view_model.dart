@@ -29,6 +29,7 @@ class CustomerListViewModel extends ChangeNotifier {
   DocumentSnapshot? lastDoc;
 
   void _initSetting() {
+    allCustomerList.clear();
     noMoreData = false;
     lastDoc = null;
   }
@@ -43,12 +44,24 @@ class CustomerListViewModel extends ChangeNotifier {
           state.widget.onItemPressed?.call(customer);
           state.context.pop();
         },
+        'onDelete': (CustomerModel customer) async {
+          await onClickDelteButton(customer: customer);
+        },
+        'onUpdate': (CustomerModel customer) async {
+          await onClickUpdateButton(customer: customer);
+        },
       };
     } else {
       data = {
         'nickname': keyword,
         'onItemPressed': (CustomerModel customer) {
           state.widget.onItemPressed?.call(customer);
+        },
+        'onDelete': (CustomerModel customer) async {
+          await onClickDelteButton(customer: customer);
+        },
+        'onUpdate': (CustomerModel customer) async {
+          await onClickUpdateButton(customer: customer);
         },
       };
     }
@@ -76,30 +89,45 @@ class CustomerListViewModel extends ChangeNotifier {
         nickname: customer.nickname,
         managerUid: user.uid,
       );
-      int idx = allCustomerList.indexWhere((e) => e.uid == customer.uid);
-      if (idx != -1) {
-        allCustomerList.removeAt(idx);
-        notifyListeners();
-      }
+      allCustomerList =
+          allCustomerList.where((e) => e.uid != customer.uid).toList();
+      notifyListeners();
+      // int idx = allCustomerList.indexWhere((e) => e.uid == customer.uid);
+      // if (idx != -1) {
+      //   allCustomerList.removeAt(idx);
+      //   notifyListeners();
+      // }
     } catch (e, trace) {
       GonLog().e('deleteCustomer error : $e');
       GonLog().e('$trace');
     }
   }
 
-  Future<void> onClickUpdateButton({required CustomerModel customer}) async {
+  Future onClickUpdateButton({required CustomerModel customer}) async {
     final result = await state.context.pushNamed(
       CustomerModifyScreen.routeName,
       extra: customer,
     );
 
     if (result is CustomerModel) {
-      int idx = allCustomerList.indexWhere((e) => e.uid == result.uid);
-      if (idx != -1) {
-        allCustomerList[idx] = result;
-        notifyListeners();
-      }
+      allCustomerList = allCustomerList.map(
+        (e) {
+          if (e.uid == result.uid) {
+            return result;
+          }
+          return e;
+        },
+      ).toList();
+      notifyListeners();
+      // int idx = allCustomerList.indexWhere((e) => e.uid == result.uid);
+      // if (idx != -1) {
+      //   allCustomerList[idx] = result;
+      //   notifyListeners();
+      // }
     }
+    GonLog().i('???');
+
+    return result;
   }
 
   Future<void> onClickAddButton() async {

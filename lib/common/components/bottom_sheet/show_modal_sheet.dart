@@ -134,6 +134,10 @@ class CupertinoDialogRoute<T> extends CustomPopupRoute<T> {
     } // Some default transition
     return _transitionBuilder!(context, animation!, secondaryAnimation!, child);
   }
+
+  @override
+  // TODO: implement popGestureEnabled
+  bool get popGestureEnabled => throw UnimplementedError();
 }
 
 class CupertinoModalRoute<T> extends CustomPopupRoute<T> {
@@ -211,6 +215,10 @@ class CupertinoModalRoute<T> extends CustomPopupRoute<T> {
       ),
     );
   }
+
+  @override
+  // TODO: implement popGestureEnabled
+  bool get popGestureEnabled => throw UnimplementedError();
 }
 
 Widget _buildCupertinoDialogTransitions(

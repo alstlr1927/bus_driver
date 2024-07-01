@@ -133,9 +133,13 @@ final router = GoRouter(
                 final String nickname = data['nickname'];
                 final Function(CustomerModel)? onItemPressed =
                     data['onItemPressed'];
+                final Function(CustomerModel)? onDelete = data['onDelete'];
+                final Function(CustomerModel)? onUpdate = data['onUpdate'];
                 return SearchCustomerResultScreen(
                   nickname: nickname,
                   onItemPressed: onItemPressed,
+                  onDelete: onDelete,
+                  onUpdate: onUpdate,
                 );
               },
             ),

@@ -11,10 +11,14 @@ class SearchCustomerResultScreen extends StatefulWidget {
 
   final String nickname;
   final Function(CustomerModel)? onItemPressed;
+  final Function(CustomerModel)? onDelete;
+  final Function(CustomerModel)? onUpdate;
   const SearchCustomerResultScreen({
     super.key,
     required this.nickname,
     this.onItemPressed,
+    this.onDelete,
+    this.onUpdate,
   });
 
   @override
@@ -55,6 +59,10 @@ class _SearchCustomerResultScreenState
                   return CustomerTile(
                     customer: customer,
                     onPressed: widget.onItemPressed,
+                    onDelete: (CustomerModel model) =>
+                        viewModel.onClickDeleteButton(customer: model),
+                    onUpdate: (CustomerModel model) =>
+                        viewModel.onClickUpdateButton(customer: model),
                   );
                 },
               );

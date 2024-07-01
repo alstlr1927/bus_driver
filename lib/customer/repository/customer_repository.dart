@@ -1,3 +1,4 @@
+import 'package:bus_counter/common/utils/logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -36,6 +37,7 @@ class CustomerRepository {
     debugPrint('pageLimit : $pageLimit\t');
     debugPrint('lastDoc : ${lastDoc?.id}');
     debugPrint('==================================================');
+
     try {
       late QuerySnapshot<Map<String, dynamic>> res;
       if (lastDoc == null) {

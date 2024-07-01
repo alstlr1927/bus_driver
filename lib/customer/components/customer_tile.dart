@@ -1,6 +1,5 @@
 import 'package:bus_counter/common/components/base_button/base_button.dart';
 import 'package:bus_counter/common/utils/gon_utils.dart';
-import 'package:bus_counter/common/utils/logger.dart';
 import 'package:bus_counter/customer/model/customer_model.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';

@@ -25,10 +25,10 @@ class HistoryViewModel extends ChangeNotifier {
   State state;
 
   List<RunModel> viewUserList = [];
-  List<RunModel> userCompleteList = [];
-  List<RunModel> userAllList = [];
-  List<RunModel> userDelteList = [];
-  List<RunModel> userRunList = [];
+  // List<RunModel> userCompleteList = [];
+  // List<RunModel> userAllList = [];
+  // List<RunModel> userDelteList = [];
+  // List<RunModel> userRunList = [];
 
   String selectedFilter = '전체';
 
