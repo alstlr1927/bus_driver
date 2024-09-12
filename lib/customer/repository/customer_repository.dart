@@ -44,14 +44,14 @@ class CustomerRepository {
         res = await customerRef
             .where('enable', isEqualTo: true)
             .orderBy('createdAt', descending: true)
-            .limit(20)
+            .limit(pageLimit)
             .get();
       } else {
         res = await customerRef
             .where('enable', isEqualTo: true)
             .orderBy('createdAt', descending: true)
             .startAfterDocument(lastDoc)
-            .limit(20)
+            .limit(pageLimit)
             .get();
       }
 
@@ -63,16 +63,28 @@ class CustomerRepository {
 
   Future<List<Map<String, dynamic>>> searchCustomer({
     required List<String> nickArr,
+    // required String nickname,
   }) async {
     debugPrint('==================================================');
     debugPrint('searchCustomer\n');
-    debugPrint('nickname : $nickArr');
+    debugPrint('nickArr : $nickArr');
     debugPrint('==================================================');
     try {
       var res = await customerRef
           .where('enable', isEqualTo: true)
           .where('nicknameArr', arrayContainsAny: nickArr)
+          // .where('nickname', isGreaterThanOrEqualTo: nickname)
+          // .where('nickname', isLessThanOrEqualTo: nickname + '\uf8ff')
           .get();
+
+      // String start = nickname.substring(0, 1);
+      // String end = nickname.substring(0, nickname.length - 1) + '\uf8ff';
+
+      // var res = await customerRef
+      //     .where('enable', isEqualTo: true)
+      //     .where('nickname', isGreaterThanOrEqualTo: start)
+      //     .where('nickname', isLessThanOrEqualTo: end)
+      //     .get();
 
       return res.docs.map((e) {
         Map<String, dynamic> data = {};

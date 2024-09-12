@@ -17,6 +17,34 @@ class SearchCustomerResultViewModel extends ChangeNotifier {
       var res = await CustomerRepository().searchCustomer(nickArr: nickArr);
       List<CustomerModel> temp =
           res.map((e) => CustomerModel.fromJson(e)).toList();
+
+      temp.sort((a, b) {
+        List<String> arrA = a.nickname.split('');
+        List<String> arrB = b.nickname.split('');
+
+        // 포함된 개수 비교
+        int countA = 0;
+        int countB = 0;
+
+        for (var keyword in nickArr) {
+          if (arrA.contains(keyword)) {
+            countA++;
+          }
+          if (arrB.contains(keyword)) {
+            countB++;
+          }
+        }
+
+        // 포함된 개수를 기준으로 내림차순 정렬
+        if (countA != countB) {
+          return countB.compareTo(countA);
+        } else {
+          return arrB
+              .indexOf(nickArr.first)
+              .compareTo(arrA.indexOf(nickArr.first));
+        }
+        // return countB.compareTo(countA);
+      });
       searchList = [...temp];
       GonLog().i('searchList length : ${searchList.length}');
       notifyListeners();

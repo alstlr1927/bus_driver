@@ -2,6 +2,7 @@ import 'package:bus_counter/common/utils/logger.dart';
 import 'package:bus_counter/history/repository/history_repository.dart';
 import 'package:bus_counter/login/view/login_landing_screen.dart';
 import 'package:bus_counter/run/model/run_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -10,8 +11,8 @@ import 'package:go_router/go_router.dart';
 import '../../common/components/custom_dialog/gon_dialog_land.dart';
 
 enum FilterType {
-  COMPLETE('C', '완료'),
   ALL('A', '전체'),
+  COMPLETE('C', '완료'),
   DELETE('D', '삭제'),
   RUN('R', '진행중');
 
@@ -25,35 +26,52 @@ class HistoryViewModel extends ChangeNotifier {
   State state;
 
   List<RunModel> viewUserList = [];
+
+  int pageLimit = 10;
+  bool noMoreData = false;
+
+  DocumentSnapshot? lastDoc;
   // List<RunModel> userCompleteList = [];
   // List<RunModel> userAllList = [];
   // List<RunModel> userDelteList = [];
   // List<RunModel> userRunList = [];
 
-  String selectedFilter = '전체';
+  // String selectedFilter = '전체';
+  FilterType filterType = FilterType.ALL;
+
+  void _initSetting() {
+    viewUserList.clear();
+    noMoreData = false;
+    lastDoc = null;
+  }
 
   void setFilter(int idx) {
-    selectedFilter = FilterType.values[idx].kr;
-    setUserList();
+    filterType = FilterType.values[idx];
+    _initSetting();
+
+    getHistoryData(
+      state: filterType.code,
+      isFirst: true,
+    );
   }
 
-  void setUserList() {
-    switch (selectedFilter) {
-      case '완료':
-        viewUserList = [...userCompleteList];
-        break;
-      case '전체':
-        viewUserList = [...userAllList];
-        break;
-      case '삭제':
-        viewUserList = [...userDelteList];
-        break;
-      case '진행중':
-        viewUserList = [...userRunList];
-        break;
-    }
-    notifyListeners();
-  }
+  // void setUserList() {
+  //   switch (selectedFilter) {
+  //     case '완료':
+  //       viewUserList = [...userCompleteList];
+  //       break;
+  //     case '전체':
+  //       viewUserList = [...userAllList];
+  //       break;
+  //     case '삭제':
+  //       viewUserList = [...userDelteList];
+  //       break;
+  //     case '진행중':
+  //       viewUserList = [...userRunList];
+  //       break;
+  //   }
+  //   notifyListeners();
+  // }
 
   @override
   void notifyListeners() {
@@ -82,40 +100,61 @@ class HistoryViewModel extends ChangeNotifier {
       );
       state.context.go(LoginLandingScreen.routeName);
     } else {
-      Future.wait([
-        getHistoryData(uid: user.uid, state: 'C')
-            .then((value) => userCompleteList = value),
-        getHistoryData(uid: user.uid, state: 'A')
-            .then((value) => userAllList = value),
-        getHistoryData(uid: user.uid, state: 'D')
-            .then((value) => userDelteList = value),
-        getHistoryData(uid: user.uid, state: 'R')
-            .then((value) => userRunList = value),
-      ]).then((value) {
-        viewUserList = [...userCompleteList];
-        notifyListeners();
-      });
+      filterType = FilterType.ALL;
+      notifyListeners();
+      getHistoryData(state: FilterType.ALL.code, isFirst: true);
     }
   }
 
-  Future<List<RunModel>> getHistoryData({
-    required String uid,
+  Future<void> getHistoryData({
     required String state,
+    bool isFirst = false,
   }) async {
+    if (isFirst) {
+      _initSetting();
+    }
+    if (noMoreData) return;
+
     try {
-      final res = await HistoryRepository().getMyRunList(
-        managerUid: uid,
-        runState: state,
-      );
+      List<QueryDocumentSnapshot<Map<String, dynamic>>> res = [];
+      if (filterType.code == 'A') {
+        res = await HistoryRepository().getMyAllRunList(
+          pageLimit: pageLimit,
+          lastDoc: lastDoc,
+        );
+      } else {
+        res = await HistoryRepository().getMyRunList(
+          runState: state,
+          pageLimit: pageLimit,
+          lastDoc: lastDoc,
+        );
+      }
+
       GonLog().e('length : ${res.length}');
-      final temp = res.map((e) => RunModel.fromJson(e)).toList();
-      return temp;
-      // userList = [...temp];
-      // notifyListeners();
+      if (res.length < pageLimit) {
+        GonLog().i('no more data');
+        noMoreData = true;
+      }
+
+      if (res.isNotEmpty) {
+        lastDoc = res.last;
+      }
+
+      List<Map<String, dynamic>> parseDatas = res.map((e) {
+        Map<String, dynamic> data = {};
+        data = e.data();
+        data['id'] = e.id;
+        return data;
+      }).toList();
+
+      List<RunModel> temp =
+          parseDatas.map((e) => RunModel.fromJson(e)).toList();
+
+      viewUserList = [...viewUserList, ...temp];
+      notifyListeners();
     } catch (e, trace) {
       GonLog().e('getHistoryData error : $e');
       GonLog().e('$trace');
-      return [];
     }
   }
 

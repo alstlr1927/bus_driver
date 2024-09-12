@@ -92,11 +92,6 @@ class CustomerListViewModel extends ChangeNotifier {
       allCustomerList =
           allCustomerList.where((e) => e.uid != customer.uid).toList();
       notifyListeners();
-      // int idx = allCustomerList.indexWhere((e) => e.uid == customer.uid);
-      // if (idx != -1) {
-      //   allCustomerList.removeAt(idx);
-      //   notifyListeners();
-      // }
     } catch (e, trace) {
       GonLog().e('deleteCustomer error : $e');
       GonLog().e('$trace');
@@ -119,13 +114,7 @@ class CustomerListViewModel extends ChangeNotifier {
         },
       ).toList();
       notifyListeners();
-      // int idx = allCustomerList.indexWhere((e) => e.uid == result.uid);
-      // if (idx != -1) {
-      //   allCustomerList[idx] = result;
-      //   notifyListeners();
-      // }
     }
-    GonLog().i('???');
 
     return result;
   }

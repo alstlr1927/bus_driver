@@ -9,6 +9,7 @@ import 'package:bus_counter/run/model/run_model.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lazy_load_scrollview/lazy_load_scrollview.dart';
 import 'package:provider/provider.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -39,31 +40,52 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return ChangeNotifierProvider<HistoryViewModel>.value(
       value: viewModel,
       builder: (context, _) {
-        return DefaultLayout(
-          title: '히스토리',
-          actions: [_buildDropdown()],
-          child: Selector<HistoryViewModel, List<RunModel>>(
-            selector: (_, prov) => prov.viewUserList,
-            builder: (context, userList, _) {
-              return Padding(
+        return Consumer<HistoryViewModel>(
+          builder: (context, prov, _) {
+            final historyList = viewModel.viewUserList;
+            final filterType = viewModel.filterType;
+            return DefaultLayout(
+              title: '히스토리',
+              actions: [_buildDropdown()],
+              child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.toWidth),
                 child: Column(
                   children: [
                     // SizedBox(height: 10.toWidth),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: userList.length,
-                        itemBuilder: (context, index) {
-                          final user = userList[index];
-                          return _RunListTile(runItem: user);
-                        },
+                    if (historyList.isNotEmpty)
+                      Expanded(
+                        child: LazyLoadScrollView(
+                          onEndOfPage: () {
+                            viewModel.getHistoryData(state: filterType.code);
+                          },
+                          child: ListView.builder(
+                            itemCount: historyList.length,
+                            itemBuilder: (context, index) {
+                              final user = historyList[index];
+                              return _RunListTile(runItem: user);
+                            },
+                          ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: Container(
+                          child: Center(
+                            child: Text(
+                              '데이터가 존재하지 않습니다.',
+                              style: GonStyle.body1(
+                                weight: FontWeight.w500,
+                                color: GonStyle.gray080,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         );
       },
     );

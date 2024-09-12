@@ -6,13 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../common/components/base_button/base_button.dart';
 import '../../common/components/custom_button/custom_button.dart';
 import '../../common/components/title_text_field/title_text_field.dart';
 import '../../common/layout/default_layout.dart';
 import '../../common/utils/gon_style.dart';
 import '../../common/utils/validator.dart';
-import '../components/login_fill_button.dart';
 import '../view_model/email_login_view_model.dart';
 
 class EmailLoginScreen extends StatefulWidget {
